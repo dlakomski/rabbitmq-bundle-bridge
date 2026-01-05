@@ -3,6 +3,7 @@
 namespace SimpleBus\RabbitMQBundleBridge\Tests;
 
 use OldSound\RabbitMqBundle\RabbitMq\Producer;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use SimpleBus\Asynchronous\Properties\AdditionalPropertiesResolver;
@@ -13,9 +14,7 @@ use stdClass;
 
 class RabbitMQPublisherTest extends TestCase
 {
-    /**
-     * @test
-     */
+    #[Test]
     public function itSerializesTheMessageAndPublishesItUsingTheResolvedRouterKey(): void
     {
         $message = $this->dummyMessage();
@@ -26,7 +25,7 @@ class RabbitMQPublisherTest extends TestCase
             ->expects($this->once())
             ->method('wrapAndSerialize')
             ->with($message)
-            ->will($this->returnValue($serializedMessageEnvelope));
+            ->willReturn($serializedMessageEnvelope);
 
         $producer = $this->mockProducer();
         $producer
@@ -77,7 +76,7 @@ class RabbitMQPublisherTest extends TestCase
             ->expects($this->any())
             ->method('resolveRoutingKeyFor')
             ->with($this->identicalTo($message))
-            ->will($this->returnValue($routingKey));
+            ->willReturn($routingKey);
 
         return $resolver;
     }
@@ -94,7 +93,7 @@ class RabbitMQPublisherTest extends TestCase
             ->expects($this->any())
             ->method('resolveAdditionalPropertiesFor')
             ->with($this->identicalTo($message))
-            ->will($this->returnValue($additionalProperties));
+            ->willReturn($additionalProperties);
 
         return $resolver;
     }

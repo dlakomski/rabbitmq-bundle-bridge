@@ -3,10 +3,16 @@
 namespace SimpleBus\RabbitMQBundleBridge\Tests\Functional;
 
 use Asynchronicity\PHPUnit\Eventually;
+use Generator;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\Test;
 use SimpleBus\Asynchronous\Properties\DelegatingAdditionalPropertiesResolver;
 use SimpleBus\Message\Bus\MessageBus;
 use stdClass;
+use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\StringInput;
 use Symfony\Component\Process\Process;
 
 class SimpleBusRabbitMQBundleTest extends KernelTestCase
@@ -14,9 +20,11 @@ class SimpleBusRabbitMQBundleTest extends KernelTestCase
     private FileLogger $logger;
 
     /**
-     * @var null|Process<\Generator>
+     * @var null|Process<Generator>
      */
     private ?Process $process = null;
+
+    private static ?Application $application = null;
 
     /**
      * Timeout for asynchronous tests.
@@ -26,21 +34,19 @@ class SimpleBusRabbitMQBundleTest extends KernelTestCase
     protected function setUp(): void
     {
         parent::setUp();
-
         static::bootKernel();
 
-        $logger = static::$kernel->getContainer()->get('logger');
+        $logger = static::getContainer()->get('logger');
 
         $this->assertInstanceof(FileLogger::class, $logger);
 
         $this->logger = $logger;
         $this->logger->clearFile();
 
-        $process = new Process(
-            ['php', 'console.php', 'rabbitmq:setup-fabric'],
-            __DIR__
-        );
-        $this->assertSame(0, $process->run());
+        $application = self::getApplication();
+        $code = $application->run(new StringInput('rabbitmq:setup-fabric --quiet'));
+
+        $this->assertSame(Command::SUCCESS, $code, 'Incorrect setup-fabric process exit code');
     }
 
     protected function tearDown(): void
@@ -54,23 +60,8 @@ class SimpleBusRabbitMQBundleTest extends KernelTestCase
         }
     }
 
-    /**
-     * @test
-     */
-    public function itIsAbleToLoadTheBundle(): void
-    {
-        /*
-         * There's no need to do anything here. This alone will prove that the bundle behaves well,
-         * i.e. its services and configuration can be loaded.
-         */
-
-        $this->assertTrue(true);
-    }
-
-    /**
-     * @test
-     * @group functional
-     */
+    #[Test]
+    #[Group('functional')]
     public function itHandlesCommandsAsynchronously(): void
     {
         $this->consumeMessagesFromQueue('asynchronous_commands');
@@ -82,10 +73,8 @@ class SimpleBusRabbitMQBundleTest extends KernelTestCase
         $this->waitUntilLogFileContains('Handling message');
     }
 
-    /**
-     * @test
-     * @group functional
-     */
+    #[Test]
+    #[Group('functional')]
     public function itHandlesEventsAsynchronously(): void
     {
         $this->consumeMessagesFromQueue('asynchronous_events');
@@ -95,10 +84,8 @@ class SimpleBusRabbitMQBundleTest extends KernelTestCase
         $this->waitUntilLogFileContains('Notified of message');
     }
 
-    /**
-     * @test
-     * @group functional
-     */
+    #[Test]
+    #[Group('functional')]
     public function itLogsErrors(): void
     {
         $this->consumeMessagesFromQueue('asynchronous_commands');
@@ -108,10 +95,8 @@ class SimpleBusRabbitMQBundleTest extends KernelTestCase
         $this->waitUntilLogFileContains('Failed to handle a message');
     }
 
-    /**
-     * @test
-     * @group functional
-     */
+    #[Test]
+    #[Group('functional')]
     public function itResolveProperties(): void
     {
         $data = $this->additionalPropertiesResolver()->resolveAdditionalPropertiesFor($this->messageDummy());
@@ -119,13 +104,11 @@ class SimpleBusRabbitMQBundleTest extends KernelTestCase
         $this->assertSame(['debug' => 'string'], $data);
     }
 
-    /**
-     * @test
-     * @group functional
-     */
+    #[Test]
+    #[Group('functional')]
     public function itSendsPropertiesToProducer(): void
     {
-        $container = static::$kernel->getContainer();
+        $container = static::getContainer();
         $container->set('old_sound_rabbit_mq.asynchronous_commands_producer', $container->get('simple_bus.rabbit_mq_bundle_bridge.delegating_additional_properties_resolver.producer_mock'));
 
         $this->commandBus()->handle(new AsynchronousCommand());
@@ -150,13 +133,13 @@ class SimpleBusRabbitMQBundleTest extends KernelTestCase
                 $this->logger->fileContains($message);
             },
             new Eventually($this->timeoutMs, 100),
-            sprintf('The log file does not contain "%s"', $message)
+            sprintf('The log file does not contain "%s"', $message),
         );
     }
 
     private function commandBus(): MessageBus
     {
-        $commandBus = static::$kernel->getContainer()->get('command_bus');
+        $commandBus = static::getContainer()->get('command_bus');
 
         $this->assertInstanceOf(MessageBus::class, $commandBus);
 
@@ -165,7 +148,7 @@ class SimpleBusRabbitMQBundleTest extends KernelTestCase
 
     private function eventBus(): MessageBus
     {
-        $eventBus = static::$kernel->getContainer()->get('event_bus');
+        $eventBus = static::getContainer()->get('event_bus');
 
         $this->assertInstanceOf(MessageBus::class, $eventBus);
 
@@ -174,7 +157,7 @@ class SimpleBusRabbitMQBundleTest extends KernelTestCase
 
     private function additionalPropertiesResolver(): DelegatingAdditionalPropertiesResolver
     {
-        $resolver = static::$kernel->getContainer()->get('simple_bus.rabbit_mq_bundle_bridge.delegating_additional_properties_resolver.public');
+        $resolver = static::getContainer()->get('simple_bus.rabbit_mq_bundle_bridge.delegating_additional_properties_resolver.public');
 
         $this->assertInstanceOf(DelegatingAdditionalPropertiesResolver::class, $resolver);
 
@@ -190,9 +173,19 @@ class SimpleBusRabbitMQBundleTest extends KernelTestCase
     {
         $this->process = new Process(
             ['php', 'console.php', 'rabbitmq:consumer', $queue],
-            __DIR__
+            __DIR__,
         );
 
         $this->process->start();
+    }
+
+    private static function getApplication(): Application
+    {
+        if (null === self::$application) {
+            self::$application = new Application(self::createKernel());
+            self::$application->setAutoExit(false);
+        }
+
+        return self::$application;
     }
 }

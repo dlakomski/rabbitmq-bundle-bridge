@@ -16,6 +16,11 @@ class FileLogger extends AbstractLogger
 
     public function clearFile(): void
     {
+        $logDir = dirname($this->path);
+        if (!is_dir($logDir)) {
+            @mkdir($logDir, 0777, true);
+        }
+
         file_put_contents($this->path, '');
     }
 

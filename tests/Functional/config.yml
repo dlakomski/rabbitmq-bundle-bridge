@@ -1,6 +1,7 @@
 parameters:
     kernel.secret: secret
     log_file: '%kernel.logs_dir%/test.log'
+    rabbitmq_host: localhost
 
 services:
     # Temp fix until https://github.com/php-amqplib/RabbitMqBundle/pull/509 gets merged
@@ -14,11 +15,6 @@ services:
         class: Symfony\Component\Translation\Translator
         arguments:
             - 'nl'
-
-    # needed to make JMSSerializerBundle work
-    annotation_reader:
-        public: true
-        class: Doctrine\Common\Annotations\AnnotationReader
     
     # needed to make JMSSerializerBundle work
     debug.stopwatch:
@@ -73,7 +69,7 @@ services:
 old_sound_rabbit_mq:
     connections:
         default:
-            host:     'localhost'
+            host:     '%rabbitmq_host%'
             port:     5672
             user:     'guest'
             password: 'guest'
@@ -103,3 +99,10 @@ simple_bus_rabbit_mq_bundle_bridge:
         producer_service_id: old_sound_rabbit_mq.asynchronous_commands_producer
     events:
         producer_service_id: old_sound_rabbit_mq.asynchronous_events_producer
+
+framework:
+    test: true
+    http_method_override: false
+    handle_all_throwables: true
+    php_errors:
+        log: true

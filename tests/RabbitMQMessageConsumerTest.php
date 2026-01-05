@@ -5,6 +5,7 @@ namespace SimpleBus\RabbitMQBundleBridge\Tests;
 use Exception;
 use OldSound\RabbitMqBundle\RabbitMq\ConsumerInterface;
 use PhpAmqpLib\Message\AMQPMessage;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use SimpleBus\Asynchronous\Consumer\SerializedEnvelopeConsumer;
@@ -16,9 +17,7 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 class RabbitMQMessageConsumerTest extends TestCase
 {
-    /**
-     * @test
-     */
+    #[Test]
     public function itConsumesTheMessageBodyAsASerializedEnvelope(): void
     {
         $serializedEnvelope = 'a serialized envelope';
@@ -36,9 +35,7 @@ class RabbitMQMessageConsumerTest extends TestCase
         $this->assertSame(ConsumerInterface::MSG_ACK, $result);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function itHandlesAnErrorButThrowsNoExceptionIfConsumingTheMessageFails(): void
     {
         $exception = new Exception('I always fail');

@@ -18,9 +18,9 @@ class TestKernel extends Kernel
 {
     private string $tempDir;
 
-    public function __construct()
+    public function __construct(string $environment = 'test')
     {
-        parent::__construct('test', true);
+        parent::__construct($environment, true);
 
         $this->tempDir = __DIR__.'/temp';
     }

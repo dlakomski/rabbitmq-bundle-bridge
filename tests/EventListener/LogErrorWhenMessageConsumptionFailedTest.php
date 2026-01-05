@@ -4,6 +4,7 @@ namespace SimpleBus\RabbitMQBundleBridge\Tests\ErrorHandling;
 
 use Exception;
 use PhpAmqpLib\Message\AMQPMessage;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
@@ -13,9 +14,7 @@ use SimpleBus\RabbitMQBundleBridge\EventListener\LogErrorWhenMessageConsumptionF
 
 class LogErrorWhenMessageConsumptionFailedTest extends TestCase
 {
-    /**
-     * @test
-     */
+    #[Test]
     public function itLogsTheError(): void
     {
         $exception = new Exception();

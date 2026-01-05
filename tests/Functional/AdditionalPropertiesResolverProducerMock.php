@@ -25,7 +25,7 @@ class AdditionalPropertiesResolverProducerMock extends Producer
      * @param mixed[]      $additionalProperties
      * @param null|mixed[] $headers
      */
-    public function publish($msgBody, $routingKey = '', $additionalProperties = [], array $headers = null): void
+    public function publish($msgBody, $routingKey = '', $additionalProperties = [], ?array $headers = null): void
     {
         $this->additionalProperties = $additionalProperties;
     }
